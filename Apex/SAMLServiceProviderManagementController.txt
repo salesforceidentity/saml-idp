@@ -1,0 +1,43 @@
+public class SAMLServiceProviderManagementController {
+
+    public List<SAML_Service_Provider__c > configs {get;set;}
+    public string SelectedConfigId { get; set; }
+
+    public SAMLServiceProviderManagementController() {
+         LoadConfigs(); 
+    }
+    
+    
+   private void LoadConfigs() {
+       configs =  [select name, Entity_ID__c, ACS_URL__c, Issuer__c, CertificateName__c  from SAML_Service_Provider__c];
+   }
+  
+   public void DeleteConfig()
+   {
+      // if for any reason we are missing the reference 
+      if (SelectedConfigId == null) {
+         return;
+      }
+     
+      // find the account record within the collection
+      SAML_Service_Provider__c tobeDeleted = null;
+      for(SAML_Service_Provider__c c : configs)
+       if (c.Id == SelectedConfigId) {
+          tobeDeleted = c;
+          break;
+       }
+      
+      if (tobeDeleted != null) {
+       Delete tobeDeleted;
+      }
+     
+      //refresh the data
+      LoadConfigs();
+   }    
+  
+    
+    
+
+
+
+}

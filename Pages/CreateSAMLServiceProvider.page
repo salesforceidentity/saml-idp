@@ -1,0 +1,15 @@
+<apex:page controller="CreateSAMLServiceProviderController" sidebar="false">
+    <h1>Create SAML Service Provider</h1>
+    <apex:messages />
+    <apex:pageBlock >
+        <apex:form forceSSL="true">
+            <apex:inputText value="{!serviceProvider.Name}" html-placeholder="Name" required="true" size="150"/><br/><br/>
+            <apex:inputText value="{!serviceProvider.Entity_ID__c }" html-placeholder="Entity ID" required="true" size="150"/><br/><br/>
+            <apex:inputText value="{!serviceProvider.ACS_URL__c }" html-placeholder="ACS URL" required="true" size="150"/><br/><br/>
+            <apex:inputText value="{!serviceProvider.Issuer__c}" html-placeholder="Issuer" required="true" size="150"/><br/><br/>
+            <apex:inputText value="{!serviceProvider.CertificateName__c }" html-placeholder="Certificate Name" required="true"  size="150"/><br/><br/>
+            <apex:commandButton action="{!save}" value="save" id="theButton"/>
+            <a href="/apex/SAMLServiceProviderManagement">cancel</a>
+        </apex:form>
+    </apex:pageBlock>
+</apex:page>

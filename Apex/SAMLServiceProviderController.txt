@@ -1,0 +1,144 @@
+public class SAMLServiceProviderController {
+    
+    private User u;
+    public SAML_Service_Provider__c serviceProvider {get;set;}
+    public String errorMessage {get;set;}
+    public String SAMLRequest {get;set;}
+    public String SAMLResponse {get;set;}
+    public String RelayState {get;set;}
+    public String RequestId {get;set;}
+    public String EntityID {get;set;}
+    
+    public SAMLServiceProviderController() {
+        
+        Apexpages.currentPage().getHeaders().put('Cache-Control','no-cache, no-store');
+        Apexpages.currentPage().getHeaders().put('Pragma','no-cache');
+        Apexpages.currentPage().getHeaders().put('Expires','Mon, 01 Jan 1990 12:00:00 GMT');
+        
+        u = [select id, Username, FederationIdentifier from User where id = :Userinfo.getUserId()]; 
+        
+        if ( u.FederationIdentifier == null ) {
+            errorMessage = 'User does not have a valid FederationID';
+        } else {
+            this.RelayState = ApexPages.currentPage().getParameters().get('RelayState');
+            this.SAMLRequest = ApexPages.currentPage().getParameters().get('SAMLRequest');
+            if ( this.SAMLRequest == null ) {
+                errorMessage = 'No SAML Request - only SP initiated implemented';
+            } 
+        }
+        
+    }
+    
+    
+    public void doSAML() {
+        
+        String DecodedSAMLRequest = Apexpages.currentPage().getParameters().get('DecodedSAMLRequest');
+        System.debug('DECODED: ' + DecodedSAMLRequest);
+        try {
+            DOM.Document Request_DOM = new DOM.Document();
+            Request_DOM.load(DecodedSAMLRequest);
+            DOM.XMLNode Root_Request = Request_DOM.getRootElement();
+            DOM.XmlNode EntityIDNode = Root_Request.getChildElement('Issuer','urn:oasis:names:tc:SAML:2.0:assertion');
+            String EntityID = EntityIDNode.getText();
+            this.serviceProvider = [select name, Entity_ID__c, ACS_URL__c, Issuer__c, CertificateName__c  from SAML_Service_Provider__c where Entity_ID__c  = :EntityID];
+            this.RequestId = Root_Request.getAttribute('ID', NULL);
+            System.debug('EntityID: ' + this.EntityID);
+            System.debug('RequestId: ' + this.RequestId);
+            
+        } catch(Exception e) { 
+            errorMessage = e.getMessage();
+        }
+        
+        if ( this.serviceProvider == null) {
+            errorMessage = 'Unable to locate service provider for EntityID: '  + EntityID;
+        } else {
+            
+            DateTime myDateTime = DateTime.now();
+            String UTC = myDateTime.formatGmt('yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\'');
+            
+            Dom.Document Response_DOM = new Dom.Document();
+            DOM.XmlNode Root_Response = Response_DOM.createRootElement('Response', 'urn:oasis:names:tc:SAML:2.0:protocol', 'samlp');
+            Root_Response.setAttribute('InResponseTo', this.RequestId);
+            Root_Response.setAttribute('Version', '2.0');
+            Root_Response.setAttribute('IssueInstant', UTC);
+            Root_Response.setAttribute('Destination', this.serviceProvider.ACS_URL__c);
+            DOM.XmlNode Element;
+            
+            Element = Root_Response.addChildElement('Issuer', 'urn:oasis:names:tc:SAML:2.0:assertion', 'saml');   
+            Element.setAttribute('Format', 'urn:oasis:names:tc:SAML:2.0:nameid-format:entity');
+            Element.addTextNode(this.serviceProvider.Issuer__c);
+            
+            Element = Root_Response.addChildElement('Status','urn:oasis:names:tc:SAML:2.0:protocol','samlp');
+            Element = Element.addChildElement('StatusCode','urn:oasis:names:tc:SAML:2.0:protocol','samlp');
+            Element.setAttribute('Value', 'urn:oasis:names:tc:SAML:2.0:status:Success');
+            
+            
+            Dom.Document Assertion_DOM = new Dom.Document();
+            DOM.XmlNode Element_Assertion = Assertion_DOM.createRootElement('Assertion', 'urn:oasis:names:tc:SAML:2.0:assertion', 'saml');            
+            Element_Assertion.setAttribute('IssueInstant', UTC);
+            Element_Assertion.setAttribute('Version', '2.0');
+            
+            Element = Element_Assertion.addChildElement('Issuer', 'urn:oasis:names:tc:SAML:2.0:assertion', 'saml');   
+            Element.setAttribute('Format', 'urn:oasis:names:tc:SAML:2.0:nameid-format:entity');
+            Element.addTextNode(this.serviceProvider.Issuer__c);
+            
+            DOM.XmlNode Element_Subject = Element_Assertion.addChildElement('Subject', 'urn:oasis:names:tc:SAML:2.0:assertion', 'saml');
+            Element = Element_Subject.addChildElement('NameID', 'urn:oasis:names:tc:SAML:2.0:assertion', 'saml');
+            Element.setAttribute('Format','urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified');
+            Element.addTextNode(this.u.FederationIdentifier);
+            Element = Element_Subject.addChildElement('SubjectConfirmation', 'urn:oasis:names:tc:SAML:2.0:assertion', 'saml');
+            Element.setAttribute('Method','urn:oasis:names:tc:SAML:2.0:cm:bearer');
+            Element = Element.addChildElement('SubjectConfirmationData', 'urn:oasis:names:tc:SAML:2.0:assertion', 'saml');
+            Element.setAttribute('NotOnOrAfter', myDateTime.addMinutes(5).formatGmt('yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\''));
+            Element.setAttribute('Recipient', this.serviceProvider.ACS_URL__c); 
+            
+            Element = Element_Assertion.addChildElement('Conditions','urn:oasis:names:tc:SAML:2.0:assertion','saml');
+            Element.setAttribute('NotOnOrAfter', myDateTime.addMinutes(5).formatGmt('yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\''));
+            Element.setAttribute('NotBefore', UTC);
+            DOM.XmlNode Element_AudienceRestriction = Element.addChildElement('AudienceRestriction', 'urn:oasis:names:tc:SAML:2.0:assertion', 'saml');
+            Element = Element_AudienceRestriction.addChildElement('Audience', 'urn:oasis:names:tc:SAML:2.0:assertion', 'saml');
+            Element.addTextNode(this.serviceProvider.Entity_ID__c);
+            
+            Element = Element_Assertion.addChildElement('AuthnStatement','urn:oasis:names:tc:SAML:2.0:assertion','saml');
+            Element.setAttribute('AuthnInstant', DateTime.now().formatGmt('yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\''));
+            Element = Element.addChildElement('AuthnContext', 'urn:oasis:names:tc:SAML:2.0:assertion', 'saml');
+            Element = Element.addChildElement('AuthnContextClassRef', 'urn:oasis:names:tc:SAML:2.0:assertion', 'saml');
+            Element.addTextNode('urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified');
+            Crypto.signXml('RSA-SHA1', Element_Assertion, NULL, 'SAMLIDP' );
+            String saml = Assertion_DOM.toXmlString();
+            String signedAssertion = moveSignature(saml,38);
+            String response = Response_DOM.toXmlString();
+            Integer endStatus = response.lastIndexOf('samlp:Status>') + 13;
+            String one = response.substring(0,endStatus);
+            String two = response.substring(endStatus);
+            String responseWithAssertion = one + signedAssertion + two;
+            Dom.Document Signed_Assertion = new Dom.Document();
+            Signed_Assertion.load(responseWithAssertion);
+            DOM.XmlNode responseNode = Signed_Assertion.getRootElement();
+            Crypto.signXml('RSA-SHA1', responseNode, NULL, 'SAMLIDP' );
+            saml = Signed_Assertion.toXmlString();
+            String reformatedAssertion =  moveSignature(saml,0);
+            this.SAMLResponse = EncodingUtil.base64Encode(Blob.valueOf(reformatedAssertion));
+            
+        }
+    }
+    
+    
+    private String moveSignature(String saml, Integer offset) {
+    
+        Integer startSignature = saml.lastIndexOf('<ds:Signature ');
+        Integer endSignature = saml.lastIndexOf('ds:Signature>') + 13;
+        
+        String one = saml.substring(offset,startSignature);
+        Integer endIssuer = one.indexOf('saml:Issuer>') + 12;
+        String oneA = one.substring(0,endIssuer);
+        String oneB = one.substring(endIssuer);
+        String signature = saml.substring(startSignature, endSignature);
+        String two = saml.substring(endSignature);
+        
+        return oneA + signature + oneB + two;
+    
+    }
+    
+    
+}

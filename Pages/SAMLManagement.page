@@ -1,0 +1,20 @@
+<apex:page controller="SAMLServiceProviderManagementController" sidebar="false" title="Manage SAML Service Providers">
+<apex:form >
+    <h1>SAML Service Providers</h1>
+    <apex:pageblock id="configs" >
+        <apex:pageblockTable value="{!configs}" var="c">
+            <apex:column value="{!c.Name}" headerValue="Name"/>        
+            <apex:column value="{!c.Entity_ID__c}" headerValue="Entity ID"/>
+            <apex:column value="{!c.Issuer__c}" headerValue="Issuer"/>
+            <apex:column value="{!c.ACS_URL__c}" headerValue="ACS URL"/>
+            <apex:column value="{!c.CertificateName__c}" headerValue="Certificate Name"/>
+            <apex:column headerValue="Operation"><a href="javascript:if (window.confirm('Are you sure?')) DeleteConfig('{!c.Id}');" style="font-weight:bold">Delete</a></apex:column>
+        </apex:pageblockTable>
+    </apex:pageblock>
+    <p><a href="/apex/CreateSAMLServiceProvider">Create a new Service Provider</a></p>
+    
+    <apex:actionFunction action="{!DeleteConfig}" name="DeleteConfig" reRender="configs" >
+        <apex:param name="configId" value="" assignTo="{!selectedConfigId}"/>
+    </apex:actionFunction>
+</apex:form>
+</apex:page>

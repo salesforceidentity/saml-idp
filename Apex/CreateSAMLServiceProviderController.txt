@@ -1,0 +1,21 @@
+public class CreateSAMLServiceProviderController {
+    
+    public SAML_Service_Provider__c  serviceProvider { get; private set; }
+
+    public CreateSAMLServiceProviderController() {
+        serviceProvider = new SAML_Service_Provider__c ();
+    }
+    
+    public PageReference save() {
+        try {
+            insert(serviceProvider);
+        } catch(System.DMLException e) {
+            ApexPages.addMessages(e);
+            return null;
+        }
+        //  After Save, navigate to the default view page:
+        return new PageReference('/apex/SAMLManagement');
+    }
+
+    
+}

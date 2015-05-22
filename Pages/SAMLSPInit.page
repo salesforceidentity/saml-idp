@@ -1,0 +1,35 @@
+<apex:page standardStylesheets="false" showHeader="false" sidebar="false" controller="SAMLServiceProviderController">
+    <html lang="en">
+        <script src="{!URLFOR($Resource.js_inflate)}"></script>
+        
+        <apex:form >   
+            <apex:actionFunction action="{!doSAML}" name="doSAML" reRender="SAMLForm">
+                <apex:param name="DecodedSAMLRequest" value=""/>
+            </apex:actionFunction>
+        </apex:form> 
+                
+        <script>
+            function getParameter(name){
+               if(name=(new RegExp('[?&]'+encodeURIComponent(name)+'=([^&]*)')).exec(location.search))
+                  return decodeURIComponent(name[1]);
+            }
+            var b64EncodedSAMLRequest = getParameter('SAMLRequest');
+            var b64DecodedSAMLRequest = atob(b64EncodedSAMLRequest);
+            var SAMLRequest = JSInflate.inflate(b64DecodedSAMLRequest);
+            doSAML(SAMLRequest);
+        </script>
+        
+        <apex:outputPanel id="SAMLForm">
+            <apex:outputPanel rendered="{!errorMessage != null}">{!errorMessage}</apex:outputPanel>
+            <apex:outputPanel rendered="{!(errorMessage == null) && (SAMLResponse != null)}">
+                <form action="{!serviceProvider.ACS_URL__c}" name="SAMLP" method="POST">
+                    <input type="hidden" name="RelayState" value="{!RelayState}" /><br/>
+                    <input type="hidden" name="SAMLResponse" value="{!SAMLResponse}" /><br/>
+                </form>
+                <script>
+                document.forms["SAMLP"].submit();
+                </script>
+            </apex:outputPanel>   
+        </apex:outputPanel>
+    </html>
+</apex:page>
