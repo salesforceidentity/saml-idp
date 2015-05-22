@@ -1,7 +1,9 @@
 saml-idp
 =================
 
-A sample saml idp implementation in Apex.  Very basic, but works. SP-init only.  Supports HTTP Redirect binding for Requests, and HTTP POST for Responses.  Tested against Google.  Of course, you should be aware that Salesforce has a built in SAML IDP, so this isn't required for any normal deployment.  
+A sample saml idp implementation in Apex.  Very basic, but works. SP-init only.  Supports HTTP Redirect binding for Requests, and HTTP POST for Responses.  Tested against Google.  
+
+NOTE: The Salesforce1 Platform has a built in SAML IDP, so this isn't required for any normal deployment.  
 
 To get started:
 
