@@ -1,11 +1,14 @@
 saml-idp
 =================
 
-A sample saml idp implementation in Apex.  Very basic, but works. SP-init only.  Supports HTTP Redirect binding for Requests, and HTTP POST for Responses.  Tested against Google.  
+## March 2023 Update
 
-NOTE: The Salesforce1 Platform has a built in SAML IDP, so this isn't required for any normal deployment.  
+ Salesforce1 Platform has a built-in SAML Identity Provider. This project isn't needed for production deployments. Learn more here: [Enable Salesforce as a SAML Identity Provider](https://help.salesforce.com/s/articleView?id=sf.identity_provider_enable.htm&type=5)
 
-To get started:
+## What is this?
+A sample SAML IdP implementation in Apex.  It is SP-init only and supports HTTP Redirect binding for Requests, and HTTP POST for Responses.  Tested against Google.  
+
+## To get started:
 
 1. Create an Object called SAML_Service_Provider__c with ACS_URL__c	URL(255), CertificateName__c Text(255), Entity_ID__c Text(255) (Unique Case Insensitive), and Issuer__c Text(255)
 2. Upload the static resource as public and all it js_inflate
